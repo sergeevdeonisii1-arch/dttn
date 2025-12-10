@@ -246,6 +246,12 @@ main {
   transform: translateY(-1px);
 }
 
+.chip.active {
+  border-color: rgba(124, 93, 255, 0.7);
+  box-shadow: 0 10px 20px rgba(124, 93, 255, 0.2);
+  background: linear-gradient(135deg, rgba(124, 93, 255, 0.25), rgba(23, 233, 255, 0.15));
+}
+
 .hero-stats {
   display: flex;
   gap: 18px;

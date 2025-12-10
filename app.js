@@ -190,12 +190,18 @@ const retryBtn = document.getElementById("retryBtn");
 const shareBtn = document.getElementById("shareBtn");
 const startNowBtn = document.getElementById("startNow");
 const randomStartBtn = document.getElementById("randomStart");
+const filterButtons = document.querySelectorAll(".filters .chip");
 
 let tests = [];
+let visibleTests = [];
 let activeTest = null;
 let currentQuestion = 0;
 let answers = [];
 let dotButtons = [];
+let currentFilter = "all";
+
+const hardcoreIds = new Set(["flow", "negotiation", "conflict", "thinking", "ego", "resilience", "burnout", "focus"]);
+const fastIds = new Set(["mindfulness", "dreams", "sleep", "energy", "habits", "micro-skills", "learning", "fast"]);
 
 const seededRandom = (seed) => {
   let t = seed + 0x6d2b79f5;
@@ -223,6 +229,12 @@ const pickQuestions = (seed) => {
 const buildTests = () =>
   themes.map((t, index) => ({
     ...t,
+    flags: {
+      popular: index < 10,
+      new: index >= 35,
+      hardcore: hardcoreIds.has(t.id),
+      fast: fastIds.has(t.id)
+    },
     questions: pickQuestions(index * 17 + 3),
     description: `100 вопросов про ${t.tag} и ${t.mood}.`
   }));
@@ -231,7 +243,7 @@ const formatMeta = (test) => `${test.tag} • ${test.mood}`;
 
 const renderCards = () => {
   testsGrid.innerHTML = "";
-  tests.forEach((test, index) => {
+  visibleTests.forEach((test, index) => {
     const card = document.createElement("div");
     card.className = "card";
     card.style.background = `linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)), radial-gradient(circle at 20% 20%, ${test.accent}33, transparent 40%), radial-gradient(circle at 80% 40%, ${test.accent}22, transparent 45%)`;
@@ -250,7 +262,7 @@ const renderCards = () => {
 };
 
 const openTest = (testId) => {
-  activeTest = tests.find((t) => t.id === testId);
+  activeTest = visibleTests.find((t) => t.id === testId) || tests.find((t) => t.id === testId);
   if (!activeTest) return;
   answers = Array(activeTest.questions.length).fill(null);
   currentQuestion = 0;
@@ -411,8 +423,19 @@ const shareResult = () => {
 };
 
 const startRandom = () => {
-  const randomIdx = Math.floor(Math.random() * tests.length);
-  openTest(tests[randomIdx].id);
+  const pool = visibleTests.length ? visibleTests : tests;
+  const randomIdx = Math.floor(Math.random() * pool.length);
+  openTest(pool[randomIdx].id);
+};
+
+const applyFilter = (filter) => {
+  currentFilter = filter;
+  filterButtons.forEach((btn) => {
+    const isActive = btn.dataset.filter === filter;
+    btn.classList.toggle("active", isActive);
+  });
+  visibleTests = tests.filter((t) => filter === "all" || t.flags[filter]);
+  renderCards();
 };
 
 window.addEventListener("keydown", (e) => {
@@ -430,12 +453,18 @@ retryBtn.addEventListener("click", () => openTest(activeTest.id));
 shareBtn.addEventListener("click", shareResult);
 startNowBtn.addEventListener("click", startRandom);
 randomStartBtn.addEventListener("click", startRandom);
+filterButtons.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const filter = btn.dataset.filter;
+    applyFilter(filter || "all");
+  });
+});
 testLayer.addEventListener("click", (e) => {
   if (e.target === testLayer) closeTest();
 });
 
 tests = buildTests();
-renderCards();
+applyFilter("all");
 
 document.getElementById("statTests").textContent = tests.length;
 document.getElementById("statQuestions").textContent = tests.length * 100;
